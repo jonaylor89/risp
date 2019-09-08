@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 use std::num::ParseFloatError;
 use std::rc::Rc;
+use std::process;
 use std::fmt;
 use std::io;
 
@@ -297,6 +298,7 @@ fn eval_built_in_form(
                 "if" => Some(eval_if_args(arg_forms, env)),
                 "def" => Some(eval_def_args(arg_forms, env)),
                 "fn" => Some(eval_lambda_args(arg_forms)),
+                "exit" => process::exit(0),
                 _ => None,
             },
         _ => None,
