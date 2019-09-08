@@ -1,10 +1,16 @@
 
+use std::collections::HashMap;
+use std::num::ParseFloatError;
+use std::fmt;
+use std::io;
+
+
 #[derive(Clone)]
 enum RispExp {
     Symbol(String),
     Number(f64),
     List(Vec<RispExp>),
-    Func(fn(&[RispExp]) -> Result<RispExp, RispExp>)
+    Func(fn(&[RispExp]) -> Result<RispExp, RispErr>),
 }
 
 #[derive(Debug)]
@@ -17,14 +23,14 @@ struct RispEnv {
     data: HashMap<String, RispExp>,
 }
 
-fn parse_list_of_floats(args: &[RispExp]) -> Result<Vec<f64>, RispExp> {
+fn parse_list_of_floats(args: &[RispExp]) -> Result<Vec<f64>, RispErr> {
     args
         .iter()
-        .map(|x| parse_single_fliat(x))
+        .map(|x| parse_single_float(x))
         .collect()
 }
 
-fn parse_single_float(exp: &RispExp) -> Result<f64, RispExp> {
+fn parse_single_float(exp: &RispExp) -> Result<f64, RispErr> {
     match exp {
         RispExp::Number(num) => Ok(*num),
         _ => Err(RispErr::Reason("expected a number".to_string()))
@@ -65,7 +71,7 @@ fn tokenize(expr: String) -> Vec<String> {
         .replace("(", " ( ")
         .replace(")", " ) ")
         .split_whitespace()
-        .map(|x|| x.to_string())
+        .map(|x| x.to_string())
         .collect()
 }
 
@@ -77,7 +83,7 @@ fn parse<'a>(tokens: &'a [String]) -> Result<(RispExp, &'a [String]), RispErr> {
 
     match &token[..] {
         "(" => read_seq(rest),
-        ")" => Err(RispErr::Reason("unexpected `)`".to_string()))
+        ")" => Err(RispErr::Reason("unexpected `)`".to_string())),
         _ => Ok((parse_atom(token), rest)),
     }
 }
@@ -103,11 +109,11 @@ fn read_seq<'a>(tokens: &'a [String]) -> Result<(RispExp, &'a [String]), RispErr
 }
 
 fn parse_atom(tokens: &str) -> RispExp {
-    let potential_float: Result<f64, ParseFloatError> = token.parse();
+    let potential_float: Result<f64, ParseFloatError> = tokens.parse();
 
     match potential_float {
         Ok(v) => RispExp::Number(v),
-        Err(_) => RispExp::Symbol(token.to_string().clone())
+        Err(_) => RispExp::Symbol(tokens.to_string().clone())
     }
 }
 
@@ -175,6 +181,15 @@ fn parse_eval(expr: String, env: &mut RispEnv) -> Result<RispExp, RispErr> {
 }
 
 fn slurp_expr() -> String {
+     let mut expr= String::new();
+
+     io::stdin().read_line(&mut expr)
+         .expect("failed to real line");
+
+     expr
+}
+
+fn main() {
     let env = &mut default_env();
     loop {
         println!("risp >");
